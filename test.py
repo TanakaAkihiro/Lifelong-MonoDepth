@@ -35,7 +35,7 @@ def main():
     model = net.model_ll(backbone,num_tasks=args.num_tasks, block_channel=[64, 128, 256, 512])
     model.to(device)
     ############load the trained models named in learning order, e.g., KN means learn on KITTI first and NYU-v2 second.
-    checkpoint = torch.load("./runs/KN.pth.tar")
+    checkpoint = torch.load("./runs/N.pth.tar", map_location=torch.device('cpu'))   
     model.load_state_dict(checkpoint['state_dict'])
     
     print('Number of G parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
@@ -48,11 +48,11 @@ def main():
     # test_loader_scans = loaddata_scannet.getTestingData(batch_size)
 
     ###########specify task order
-    test(test_loader_kitti, model, task=0)
-    test(test_loader_nyu, model, task=1)
+    test(test_loader_nyu, model, task=0, device=device)
+    test(test_loader_kitti, model, task=0, device=device)
     # test(test_loader_scans, net_t, task=2)
         
-def test(test_loader, net, task):
+def test(test_loader, net, task, device):
     net.eval()
 
     totalNumber = 0
@@ -64,8 +64,8 @@ def test(test_loader, net, task):
         for i, sample_batched in enumerate(test_loader):
             image, depth = sample_batched['image'], sample_batched['depth']
 
-            depth = depth.cuda()
-            image = image.cuda()
+            depth = depth.to(device)
+            image = image.to(device)
 
             out, _ = net(image)
             output, um = out[task][0], out[task][1]
