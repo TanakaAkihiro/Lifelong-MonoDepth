@@ -35,7 +35,7 @@ def main():
     checkpoint = torch.load("./runs/NKS.pth.tar")
     model.load_state_dict(checkpoint['state_dict'])
     
-    print('Number of G parameters: {}'.format(sum([p.data.nelement() for p in net_t.parameters()])))
+    print('Number of G parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
     
     batch_size = 1
 
@@ -49,9 +49,9 @@ def main():
     test_loader_kitti = loaddata_kitti.getTestingData(batch_size)
     test_loader_scans = loaddata_scannet.getTestingData(batch_size)
 
-    feas_nyu = test_feas(replay_nyu, net_t, batch_size, task=0)  
-    feas_kitti = test_feas(replay_kitti, net_t, batch_size, task=1)
-    feas_scans = test_feas(replay_scans, net_t, batch_size, task=2)
+    feas_nyu = test_feas(replay_nyu, model, batch_size, task=0)  
+    feas_kitti = test_feas(replay_kitti, model, batch_size, task=1)
+    feas_scans = test_feas(replay_scans, model, batch_size, task=2)
     
     feas_nyu = feas_nyu.view(1,64,114,152)
     feas_kitti = feas_kitti.view(1,64,160,240)
@@ -62,9 +62,9 @@ def main():
     feas_kitti3 = torch.nn.functional.upsample(feas_kitti, size=[114,152], mode='bilinear', align_corners=True)
     feas_scans2 = torch.nn.functional.upsample(feas_scans, size=[176,608], mode='bilinear', align_corners=True)
     
-    test(test_loader_nyu, net_t, feas_kitti3, feas_nyu, feas_scans, task=0)
-    test(test_loader_kitti, net_t, feas_kitti2, feas_nyu2, feas_scans2, task=1)
-    test(test_loader_scans, net_t, feas_kitti3, feas_nyu, feas_scans, task=2)
+    test(test_loader_nyu, model, feas_kitti3, feas_nyu, feas_scans, task=0)
+    test(test_loader_kitti, model, feas_kitti2, feas_nyu2, feas_scans2, task=1)
+    test(test_loader_scans, model, feas_kitti3, feas_nyu, feas_scans, task=2)
 
 
 
