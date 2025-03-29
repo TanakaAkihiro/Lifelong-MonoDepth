@@ -23,16 +23,17 @@ class model_ll(nn.Module):
                 
         self.tasks = {}
         self.num_tasks = num_tasks
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         for i in range(self.num_tasks):            
             if is_training:
                 if((self.num_tasks > 1) and (i != (self.num_tasks-1))):
-                    self.tasks[i] = backbone.tasks[i].cuda()
+                    self.tasks[i] = backbone.tasks[i].to(device)
                 else:
-                    self.tasks[i] = Uncertainty_depth(block_channel).cuda()   
+                    self.tasks[i] = Uncertainty_depth(block_channel).to(device) 
                 self.add_module('task'+ str(i),self.tasks[i])
             else:
-                self.tasks[i] = Uncertainty_depth(block_channel).cuda()   
+                self.tasks[i] = Uncertainty_depth(block_channel).to(device)
                 self.add_module('task'+ str(i),self.tasks[i])
 
         
