@@ -15,6 +15,7 @@ from models import modules, net, resnet
 import pdb
 import copy
 import os
+import cv2
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
@@ -29,13 +30,13 @@ def main():
     encoder = modules.E_resnet(resnet.resnet34(pretrained=True))
     backbone = net.backbone(encoder, num_features=512, block_channel=[64, 128, 256, 512])
     
-    model = net.model_ll(backbone,num_tasks=args.num_tasks, block_channel=[64, 128, 256, 512])
+    model = net.model_ll(backbone,num_tasks=int(args.num_tasks), block_channel=[64, 128, 256, 512])
     model.to(device)
     ############load the trained models named in learning order, e.g., KN means learn on KITTI first and NYU-v2 second.
-    checkpoint = torch.load("./runs/NKS.pth.tar")
+    checkpoint = torch.load("./runs/NSK.pth.tar")
     model.load_state_dict(checkpoint['state_dict'])
     
-    print('Number of G parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
+    print('Number of G parameters: {}'.format(sum([p.data.nelement() for p in net_t.parameters()])))
     
     batch_size = 1
 
@@ -49,9 +50,9 @@ def main():
     test_loader_kitti = loaddata_kitti.getTestingData(batch_size)
     test_loader_scans = loaddata_scannet.getTestingData(batch_size)
 
-    feas_nyu = test_feas(replay_nyu, model, batch_size, task=0)  
-    feas_kitti = test_feas(replay_kitti, model, batch_size, task=1)
-    feas_scans = test_feas(replay_scans, model, batch_size, task=2)
+    feas_nyu = test_feas(replay_nyu, net_t, batch_size, task=0)  
+    feas_kitti = test_feas(replay_kitti, net_t, batch_size, task=1)
+    feas_scans = test_feas(replay_scans, net_t, batch_size, task=2)
     
     feas_nyu = feas_nyu.view(1,64,114,152)
     feas_kitti = feas_kitti.view(1,64,160,240)
@@ -62,9 +63,9 @@ def main():
     feas_kitti3 = torch.nn.functional.upsample(feas_kitti, size=[114,152], mode='bilinear', align_corners=True)
     feas_scans2 = torch.nn.functional.upsample(feas_scans, size=[176,608], mode='bilinear', align_corners=True)
     
-    test(test_loader_nyu, model, feas_kitti3, feas_nyu, feas_scans, task=0)
-    test(test_loader_kitti, model, feas_kitti2, feas_nyu2, feas_scans2, task=1)
-    test(test_loader_scans, model, feas_kitti3, feas_nyu, feas_scans, task=2)
+    test(test_loader_nyu, net_t, feas_kitti3, feas_nyu, feas_scans, task=0)
+    test(test_loader_kitti, net_t, feas_kitti2, feas_nyu2, feas_scans2, task=1)
+    test(test_loader_scans, net_t, feas_kitti3, feas_nyu, feas_scans, task=2)
 
 
 
@@ -138,6 +139,16 @@ def test(test_loader, net, feas_kitti, feas_nyu, feas_scans, task):
             errors = util.evaluateError(output, depth)
             errorSum = util.addErrors(errorSum, errors, batchSize)
             averageError = util.averageErrors(errorSum, totalNumber)
+
+        depth_map = output.detach().cpu().numpy()
+        depth_map = depth_map.reshape(depth.size(0), depth.size(1))  # Reshape to 2D
+        
+        # Normalize for visualization
+        depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min())
+        
+        # Save depth map as an image (optional)
+        depth_map_uint8 = (depth_map * 255).astype(np.uint8)  # Convert to uint8 format
+        cv2.imwrite(f"depth_output_task{task}_{i}.png", depth_map_uint8)
 
         end2 = time.time()
         total_time = (end2-end)
