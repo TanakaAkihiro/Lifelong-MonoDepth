@@ -148,7 +148,7 @@ def test(test_loader, net, feas_kitti, feas_nyu, feas_scans, task):
         
         # Save depth map as an image (optional)
         depth_map_uint8 = (depth_map * 255).astype(np.uint8)  # Convert to uint8 format
-        cv2.imwrite(f"depth_output_task{task}_{i}.png", depth_map_uint8)
+        cv2.imwrite(f"depth_prediction/depth_output_task{task}_{i}.png", depth_map_uint8)
 
         end2 = time.time()
         total_time = (end2-end)
